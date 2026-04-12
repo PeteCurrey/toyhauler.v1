@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://jpctrailers.co.uk/sitemap.xml
