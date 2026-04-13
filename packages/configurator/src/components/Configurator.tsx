@@ -111,10 +111,6 @@ export const Configurator: React.FC<ConfiguratorProps> = ({
   );
 };
 
-      </div>
-    </div>
-  );
-};
 
 const AxleStep = () => {
   const { axleConfig, setAxleConfig, baseModel } = useConfigStore();
