@@ -6,6 +6,7 @@ import { TrailerSVG } from '../visualizer/TrailerSVG';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { motion, AnimatePresence } from 'framer-motion';
+import { LeadCaptureModal } from './LeadCaptureModal';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -338,7 +339,6 @@ const AccessoriesStep = () => {
   );
 };
 
-import { LeadCaptureModal } from './LeadCaptureModal';
 
 const SummaryStep = () => {
   const store = useConfigStore();
