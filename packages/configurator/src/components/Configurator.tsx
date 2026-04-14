@@ -111,6 +111,79 @@ export const Configurator: React.FC<ConfiguratorProps> = ({
   );
 };
 
+const BaseModelStep = () => {
+  const { baseModel, setBaseModel } = useConfigStore();
+  const models = [
+    { id: 'JPC-CH', name: 'Car Hauler Series', desc: 'Open aluminium transport for enthusiasts.', price: 4500 },
+    { id: 'JPC-EX', name: 'Enclosed Series', desc: 'Premium covered infrastructure for overlanding & motorsport.', price: 7500 },
+    { id: 'JPC-BESPOKE', name: 'Bespoke Commission', desc: 'Clean-sheet engineering for specialized requirements.', price: 10000 },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {models.map((m) => (
+        <button
+          key={m.id}
+          onClick={() => setBaseModel(m.id as any)}
+          className={cn(
+            "w-full p-6 text-left border transition-all",
+            baseModel === m.id ? "border-accent bg-accent/5" : "border-border bg-surface hover:border-text-muted"
+          )}
+        >
+          <div className="flex justify-between items-start mb-2">
+            <h3 className="text-xl font-syne font-bold uppercase tracking-tight">{m.name}</h3>
+            <span className="font-mono text-accent text-sm">FROM £{m.price.toLocaleString()}</span>
+          </div>
+          <p className="text-sm text-text-muted leading-relaxed">{m.desc}</p>
+        </button>
+      ))}
+    </div>
+  );
+};
+
+const DimensionsStep = () => {
+  const { dimensions, setDimensions, baseModel } = useConfigStore();
+  
+  if (baseModel === 'JPC-BESPOKE') {
+    return (
+      <div className="py-20 text-center">
+        <p className="font-mono text-xs text-text-muted uppercase tracking-[0.2em]">Dimensions finalized during technical consultation.</p>
+      </div>
+    );
+  }
+
+  const controls = [
+    { label: 'Length', key: 'length', min: 14, max: 28, step: 2, suffix: 'ft' },
+    { label: 'Width', key: 'width', min: 7, max: 8.5, step: 0.5, suffix: 'ft' },
+    { label: 'Height', key: 'height', min: 6, max: 7.5, step: 0.5, suffix: 'ft' },
+  ];
+
+  return (
+    <div className="space-y-12">
+      {controls.map((ctrl) => (
+        <div key={ctrl.key} className="space-y-4">
+          <div className="flex justify-between items-center">
+            <label className="font-mono text-[10px] text-text-muted uppercase tracking-widest">{ctrl.label}</label>
+            <span className="font-syne font-bold text-xl">{dimensions[ctrl.key as keyof typeof dimensions]}{ctrl.suffix}</span>
+          </div>
+          <input 
+            type="range"
+            min={ctrl.min}
+            max={ctrl.max}
+            step={ctrl.step}
+            value={dimensions[ctrl.key as keyof typeof dimensions]}
+            onChange={(e) => setDimensions({ [ctrl.key]: parseFloat(e.target.value) })}
+            className="w-full accent-accent h-1 bg-border rounded-lg appearance-none cursor-pointer"
+          />
+          <div className="flex justify-between font-mono text-[9px] text-[#333]">
+            <span>{ctrl.min}{ctrl.suffix}</span>
+            <span>{ctrl.max}{ctrl.suffix}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 const AxleStep = () => {
   const { axleConfig, setAxleConfig, baseModel } = useConfigStore();
@@ -265,9 +338,12 @@ const AccessoriesStep = () => {
   );
 };
 
+import { LeadCaptureModal } from './LeadCaptureModal';
+
 const SummaryStep = () => {
   const store = useConfigStore();
   const [isSaving, setIsSaving] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [configRef, setConfigRef] = useState<string | null>(null);
 
   const handleDownload = async () => {
@@ -284,6 +360,42 @@ const SummaryStep = () => {
     setIsSaving(false);
     navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?config=${ref}`);
     alert('Share link copied to clipboard!');
+  };
+
+  const handleCommissionSubmit = async (userData: any) => {
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/commission', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userData,
+          config: {
+            baseModel: store.baseModel,
+            dimensions: store.dimensions,
+            axleConfig: store.axleConfig,
+            exteriorFinish: store.exteriorFinish,
+            interiorPackage: store.interiorPackage,
+            accessories: store.accessories,
+            estimatedPrice: store.estimatedPrice,
+          }
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setConfigRef(data.ref);
+        alert('Commission request submitted successfully!');
+        setIsModalOpen(false);
+      } else {
+        throw new Error('Failed to submit commission');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Failed to submit commission request. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -334,6 +446,7 @@ const SummaryStep = () => {
           {isSaving ? 'Saving...' : 'Share This Build'}
         </button>
         <button 
+          onClick={() => setIsModalOpen(true)}
           className="w-full py-5 bg-accent text-white font-syne font-bold tracking-tight hover:scale-[1.02] transition-transform uppercase"
         >
           Commission This Build →
@@ -343,6 +456,13 @@ const SummaryStep = () => {
       <p className="text-[10px] text-text-muted font-mono leading-relaxed text-center italic">
         * Pricing is indicative and includes VAT. Final quote confirmed at technical specification stage.
       </p>
+
+      <LeadCaptureModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleCommissionSubmit}
+        isSubmitting={isSaving}
+      />
     </div>
   );
 };
