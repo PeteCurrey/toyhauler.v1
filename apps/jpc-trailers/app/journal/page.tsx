@@ -8,13 +8,26 @@ export const metadata: Metadata = {
   description: 'Inside JPC Trailers. Build diaries, delivery stories, and industry insights.',
 }
 
-export default async function JournalPage() {
+import Link from 'next/link'
+
+export default async function JournalPage({ 
+  searchParams 
+}: { 
+  searchParams: Promise<{ category?: string }> 
+}) {
+  const { category = 'All' } = await searchParams
   const supabase = createServerClient()
   
-  const { data: posts, error } = await supabase
+  let query = supabase
     .from('journal_posts')
     .select('*')
     .order('published_at', { ascending: false })
+
+  if (category !== 'All') {
+    query = query.eq('category', category)
+  }
+
+  const { data: posts } = await query
 
   const categories = ['All', 'Build Diary', 'Delivery Stories', 'Behind the Build', 'Industry']
 
@@ -39,13 +52,16 @@ export default async function JournalPage() {
           {/* Filters */}
           <div className="flex flex-wrap gap-4 mt-12">
             {categories.map((cat) => (
-              <button
+              <Link
                 key={cat}
-                className="px-6 py-2 border border-[#1E1E1E] text-[10px] uppercase tracking-widest transition-all hover:border-[#E8500A] hover:text-[#E8500A]"
-                style={{ fontFamily: 'DM Mono, monospace', color: '#888888' }}
+                href={cat === 'All' ? '/journal' : `/journal?category=${encodeURIComponent(cat)}`}
+                className={`px-6 py-2 border text-[10px] uppercase tracking-widest transition-all hover:border-[#E8500A] hover:text-[#E8500A] ${
+                  category === cat ? 'border-[#E8500A] text-[#E8500A]' : 'border-[#1E1E1E] text-[#6A6A6A]'
+                }`}
+                style={{ fontFamily: 'DM Mono, monospace' }}
               >
                 {cat}
-              </button>
+              </Link>
             ))}
           </div>
         </div>
@@ -54,7 +70,7 @@ export default async function JournalPage() {
         {!posts || posts.length === 0 ? (
           <div className="py-20 border-t border-[#1E1E1E]">
             <p className="text-[#444444] uppercase tracking-widest text-xs font-mono">
-              // No articles published yet. Check back soon.
+              // No articles in this category. Check back soon.
             </p>
           </div>
         ) : (

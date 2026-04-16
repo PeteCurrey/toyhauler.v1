@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import SectionLabel from '@/components/ui/SectionLabel'
 import Button from '@/components/ui/Button'
+import Link from 'next/link'
 
 export default function AdminDashboard() {
   const [session, setSession] = useState<any>(null)
@@ -27,12 +28,37 @@ export default function AdminDashboard() {
 
   const fetchData = async () => {
     setIsLoading(true)
-    const { data } = await supabase
+    
+    // Fetch new format leads (with config data joined)
+    const { data: newData } = await supabase
+      .from('commissions')
+      .select(`*, saved_configs ( base_model, config_data )`)
+      .order('created_at', { ascending: false })
+
+    // Fetch legacy leads
+    const { data: oldData } = await supabase
       .from('commission_requests')
       .select('*')
       .order('created_at', { ascending: false })
+      
+    // Normalize and merge data
+    const merged = [
+      ...(newData || []).map(c => {
+        // Handle array wrap from join
+        const config = Array.isArray(c.saved_configs) ? c.saved_configs[0] : c.saved_configs;
+        return {
+          id: c.id,
+          created_at: c.created_at,
+          full_name: c.name,
+          trailer_type: config ? config.base_model : 'Custom Build',
+          budget_range: config?.config_data?.estimatedPrice ? `EST. £${config.config_data.estimatedPrice.toLocaleString()}` : 'TBC',
+          status: c.status
+        };
+      }),
+      ...(oldData || [])
+    ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     
-    setCommissions(data || [])
+    setCommissions(merged)
     setIsLoading(false)
   }
 
@@ -111,7 +137,7 @@ export default function AdminDashboard() {
                         </span>
                       </td>
                       <td className="p-4">
-                        <button className="text-[10px] uppercase font-mono text-[#E8500A] font-bold hover:underline">View Detail →</button>
+                        <Link href={`/admin/dashboard/commissions/${c.id}`} className="text-[10px] uppercase font-mono text-[#E8500A] font-bold hover:underline">View Detail →</Link>
                       </td>
                     </tr>
                   ))

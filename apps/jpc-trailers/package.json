@@ -19,6 +19,7 @@
     "resend": "^4.5.1",
     "next-seo": "^6.6.0",
     "clsx": "^2.1.1",
+    "tailwind-merge": "^2.6.0",
     "@jpc/configurator": "*",
     "@jpc/types": "*"
   },
