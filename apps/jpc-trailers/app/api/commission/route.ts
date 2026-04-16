@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY || 're_placeholder');
-
 export async function POST(req: Request) {
   try {
     const { userData, config } = await req.json();
@@ -38,12 +36,13 @@ export async function POST(req: Request) {
 
     if (leadError) throw leadError;
 
-    // 4. Send Email via Resend
+    // 4. Send Email via Resend — only if key is set (runtime only)
     if (process.env.RESEND_API_KEY) {
+      const resend = new Resend(process.env.RESEND_API_KEY);
       await resend.emails.send({
         from: 'JPC Trailers <builds@jpctrailers.co.uk>',
         to: userData.email,
-        bcc: ['pete@jpctrailers.co.uk'], // Admin notification
+        bcc: ['pete@jpctrailers.co.uk'],
         subject: `Technical Spec Received: #${config_ref}`,
         html: `
           <div style="font-family: sans-serif; background: #080808; color: #F0F0F0; padding: 40px; max-width: 600px;">
